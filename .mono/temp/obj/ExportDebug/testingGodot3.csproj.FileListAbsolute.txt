@@ -16,3 +16,13 @@ C:\Users\andre\OneDrive\Documents\Projects\processsimulation\.mono\temp\obj\Expo
 C:\Users\andre\OneDrive\Documents\Projects\processsimulation\.mono\temp\obj\ExportDebug\testingGodot3.csproj.CoreCompileInputs.cache
 C:\Users\andre\OneDrive\Documents\Projects\processsimulation\.mono\temp\obj\ExportDebug\testingGodot3.dll
 C:\Users\andre\OneDrive\Documents\Projects\processsimulation\.mono\temp\obj\ExportDebug\testingGodot3.pdb
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\bin\ExportDebug\testingGodot3.dll
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\bin\ExportDebug\testingGodot3.pdb
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.csproj.AssemblyReference.cache
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.AssemblyInfoInputs.cache
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.AssemblyInfo.cs
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.csproj.CoreCompileInputs.cache
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.sourcelink.json
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.dll
+C:\Users\andre\OneDrive\Documents\Projects\process-sim\.mono\temp\obj\ExportDebug\testingGodot3.pdb

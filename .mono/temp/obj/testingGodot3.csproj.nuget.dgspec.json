@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\processsimulation\\testingGodot3.csproj": {}
+    "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\process-sim\\testingGodot3.csproj": {}
   },
   "projects": {
-    "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\processsimulation\\testingGodot3.csproj": {
+    "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\process-sim\\testingGodot3.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\processsimulation\\testingGodot3.csproj",
+        "projectUniqueName": "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\process-sim\\testingGodot3.csproj",
         "projectName": "testingGodot3",
-        "projectPath": "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\processsimulation\\testingGodot3.csproj",
+        "projectPath": "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\process-sim\\testingGodot3.csproj",
         "packagesPath": "C:\\Users\\andre\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\processsimulation\\.mono\\temp\\obj\\",
+        "outputPath": "C:\\Users\\andre\\OneDrive\\Documents\\Projects\\process-sim\\.mono\\temp\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\andre\\AppData\\Roaming\\NuGet\\NuGet.Config",

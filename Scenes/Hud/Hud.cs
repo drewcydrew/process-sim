@@ -10,6 +10,7 @@ public class Hud : CanvasLayer
 	public event Action SpawnTraveller;
 	public event Action ResetSimTime;
 	public event Action ToggleSimulation;
+	public event Action MaxSpeed;
 
 	// C# event (with float arg)
 	public event Action<float> TimeScaleChanged;
@@ -71,6 +72,13 @@ public class Hud : CanvasLayer
 		ToggleSimulation?.Invoke();
 	}
 
+	private void OnMaxSpeedPressed()
+	{
+		MaxSpeed?.Invoke();
+		// Update speed label to show MAX (using 1000x speed)
+		UpdateSpeedLabel(1000.0f);
+	}
+
 	private void OnResetPressed()
 	{
 		ResetSimTime?.Invoke();
@@ -83,6 +91,11 @@ public class Hud : CanvasLayer
 		{
 			child.QueueFree();
 		}
+
+		// Reset speed slider and label to normal
+		var speedSlider = GetNode<HSlider>("SpeedSlider");
+		speedSlider.Value = 1.0f;
+		UpdateSpeedLabel(1.0f);
 	}
 
 	private void OnSpeedSliderChanged(float value)
@@ -91,10 +104,24 @@ public class Hud : CanvasLayer
 		UpdateSpeedLabel(value);
 	}
 
-	private void UpdateSpeedLabel(float speed)
+	public void UpdateSpeedLabel(float speed)
 	{
 		var speedLabel = GetNode<Label>("SpeedLabel");
-		speedLabel.Text = $"Speed: {speed:F1}x";
+		if (speed >= 1000.0f)
+		{
+			speedLabel.Text = "Speed: MAX";
+			speedLabel.Modulate = Colors.Red; // Highlight max speed
+		}
+		else if (speed == 0.0f)
+		{
+			speedLabel.Text = "Speed: STOPPED";
+			speedLabel.Modulate = Colors.Yellow; // Highlight stopped state
+		}
+		else
+		{
+			speedLabel.Text = $"Speed: {speed:F0}x"; // Remove decimal places for cleaner display
+			speedLabel.Modulate = Colors.White; // Normal color
+		}
 	}
 
 	public void UpdateSimTime(string text)

@@ -11,6 +11,7 @@ public class Main : Node
 	// Simulation time and time scale
 	public float simTime = 0f;
 	private float timeScale = 1.0f;
+	private float previousTimeScale = 1.0f; // Store previous time scale for resume
 	private bool simulationRunning = true;
 	private bool hasEverStarted = false; // Track if simulation has started at least once
 	private const int TOTAL_BOXES = 10;
@@ -36,6 +37,7 @@ public class Main : Node
 		hud.TimeScaleChanged += OnTimeScaleChanged;
 		hud.ResetSimTime += OnResetSimulation;
 		hud.ToggleSimulation += OnToggleSimulation;
+		hud.MaxSpeed += OnMaxSpeed;
 
 		_InitializeBoxes();
 
@@ -105,6 +107,8 @@ public class Main : Node
 	private void OnResetSimulation()
 	{
 		simTime = 0f;
+		timeScale = 1.0f; // Reset to normal speed
+		previousTimeScale = 1.0f; // Reset previous speed
 		simulationRunning = true; // Restart simulation
 		hasEverStarted = false; // Reset first start tracking
 
@@ -144,8 +148,27 @@ public class Main : Node
 	{
 		simulationRunning = !simulationRunning;
 
-		// Update HUD button state
 		var hud = GetNode<Hud>("Hud");
+
+		if (simulationRunning)
+		{
+			// Starting - restore previous time scale
+			timeScale = previousTimeScale;
+			// Update speed slider to show current speed
+			var speedSlider = hud.GetNode<HSlider>("SpeedSlider");
+			speedSlider.Value = timeScale;
+			hud.UpdateSpeedLabel(timeScale);
+		}
+		else
+		{
+			// Stopping - save current time scale and set to 0
+			previousTimeScale = timeScale;
+			timeScale = 0.0f;
+			// Update speed label to show stopped
+			hud.UpdateSpeedLabel(0.0f);
+		}
+
+		// Update HUD button state
 		hud.UpdateSimulationButton(simulationRunning);
 
 		GD.Print($"Simulation {(simulationRunning ? "started" : "stopped")}");
@@ -153,7 +176,40 @@ public class Main : Node
 
 	public void OnTimeScaleChanged(float newScale)
 	{
-		timeScale = newScale;
+		// Only update if simulation is running (not stopped)
+		if (simulationRunning)
+		{
+			timeScale = newScale;
+			previousTimeScale = newScale; // Store as previous for when we stop/start
+		}
+		else
+		{
+			// If stopped, just update the previous scale for when we resume
+			previousTimeScale = newScale;
+		}
+	}
+
+	private void OnMaxSpeed()
+	{
+		// Set time scale to high value to complete simulation quickly
+		// This preserves data fidelity while running much faster than normal
+		timeScale = 1000.0f; // High speed for fast completion
+		previousTimeScale = 1000.0f; // Store as previous
+
+		// Ensure simulation is running
+		if (!simulationRunning)
+		{
+			simulationRunning = true;
+			var hud = GetNode<Hud>("Hud");
+			hud.UpdateSimulationButton(simulationRunning);
+		}
+
+		// Update the speed slider to show max value (1000)
+		var hud2 = GetNode<Hud>("Hud");
+		var speedSlider = hud2.GetNode<HSlider>("SpeedSlider");
+		speedSlider.Value = speedSlider.MaxValue; // Set to maximum slider value
+
+		GD.Print("Max speed activated - simulation running at maximum speed");
 	}
 
 	private void _SpawnTraveller()

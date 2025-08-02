@@ -29,9 +29,10 @@ margin_left = 289.0
 margin_top = 55.0
 margin_right = 561.0
 margin_bottom = 95.0
-max_value = 1000.0
+min_value = 0.0
+max_value = 100.0
 step = 1.0
-value = 1.0
+value = 0.0
 
 [node name="Reset" type="Button" parent="."]
 margin_left = 580.0

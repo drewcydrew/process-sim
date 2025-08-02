@@ -40,9 +40,9 @@ public class Hud : CanvasLayer
 
 	public override void _Ready()
 	{
-		// Initialize slider to default speed
+		// Initialize slider to default speed (1x = slider value 0)
 		var speedSlider = GetNode<HSlider>("SpeedSlider");
-		speedSlider.Value = 1.0;
+		speedSlider.Value = ExponentialSpeedToSlider(1.0f); // Set slider to position for 1x speed
 		UpdateSpeedLabel(1.0f);
 
 		// Get Gantt chart components
@@ -51,6 +51,12 @@ public class Hud : CanvasLayer
 
 		// Update download button text
 		UpdateDownloadButtonText();
+	}
+
+	public void SetSliderFromSpeed(float speed)
+	{
+		var speedSlider = GetNode<HSlider>("SpeedSlider");
+		speedSlider.Value = ExponentialSpeedToSlider(speed);
 	}
 
 	public void UpdateSimulationButton(bool isRunning)
@@ -92,16 +98,35 @@ public class Hud : CanvasLayer
 			child.QueueFree();
 		}
 
-		// Reset speed slider and label to normal
+		// Reset speed slider and label to normal (1x speed)
 		var speedSlider = GetNode<HSlider>("SpeedSlider");
-		speedSlider.Value = 1.0f;
+		speedSlider.Value = ExponentialSpeedToSlider(1.0f);
 		UpdateSpeedLabel(1.0f);
 	}
 
 	private void OnSpeedSliderChanged(float value)
 	{
-		TimeScaleChanged?.Invoke(value);
-		UpdateSpeedLabel(value);
+		// Convert linear slider value (0-100) to exponential speed (1x-1000x)
+		float exponentialSpeed = SliderToExponentialSpeed(value);
+		TimeScaleChanged?.Invoke(exponentialSpeed);
+		UpdateSpeedLabel(exponentialSpeed);
+	}
+
+	private float SliderToExponentialSpeed(float sliderValue)
+	{
+		// Map slider value (0-100) to exponential range (1x-1000x)
+		// Using exponential formula: speed = 1 * (1000^(sliderValue/100))
+		// This gives smooth exponential curve from 1x to 1000x
+		float normalizedValue = sliderValue / 100.0f; // Convert to 0-1 range
+		return Mathf.Pow(1000.0f, normalizedValue);
+	}
+
+	private float ExponentialSpeedToSlider(float speed)
+	{
+		// Convert exponential speed back to slider value
+		// Inverse of exponential formula: sliderValue = 100 * log(speed) / log(1000)
+		float normalizedValue = Mathf.Log(speed) / Mathf.Log(1000.0f);
+		return normalizedValue * 100.0f;
 	}
 
 	public void UpdateSpeedLabel(float speed)

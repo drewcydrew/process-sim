@@ -135,12 +135,14 @@ public class Traveller : Node2D
 			{
 				_isDelaying = false;
 				// Update activity when delay ends
-				if (_currentIndex == 0)
+				if (_currentIndex == 0 && !_hasPickedUpBox)
 					_UpdateActivity(TravellerActivity.MovingToPickup);
 				else if (_currentIndex == 1 && _hasPickedUpBox)
 					_UpdateActivity(TravellerActivity.MovingToDelivery);
 				else if (_returningToPickup)
 					_UpdateActivity(TravellerActivity.Returning);
+				// If we're already in MovingToDelivery state (from _StartNextDelivery), 
+				// don't change the activity, just continue with movement
 			}
 			return;
 		}
@@ -281,6 +283,7 @@ public class Traveller : Node2D
 			return;
 		}
 
+		// First update to PickingUp activity
 		_UpdateActivity(TravellerActivity.PickingUp);
 
 		// Get next box
@@ -292,6 +295,16 @@ public class Traveller : Node2D
 		_hasDeliveredBox = false;
 		_returningToPickup = false;
 
+		// Immediately pickup the box since we're at the pickup location
+		_carriedBox.GetParent().RemoveChild(_carriedBox);
+		AddChild(_carriedBox);
+		_carriedBox.Position = Vector2.Zero;
+		_hasPickedUpBox = true;
+		_carriedBox.Visible = true;
+
+		// Now update to MovingToDelivery since we've picked up the box
+		_UpdateActivity(TravellerActivity.MovingToDelivery);
+
 		// Set up journey from middle to end (we're already at middle)
 		var env = GetTree().Root.GetNode<Node>("Main/Environment");
 		var endC = env.GetNode<ColorRect>("EndPosition");
@@ -302,13 +315,6 @@ public class Traveller : Node2D
 		_start = Position;
 		_isDelaying = true;
 		_delayTimer = _delay;
-
-		// Immediately pickup the box since we're at the pickup location
-		_carriedBox.GetParent().RemoveChild(_carriedBox);
-		AddChild(_carriedBox);
-		_carriedBox.Position = Vector2.Zero;
-		_hasPickedUpBox = true;
-		_carriedBox.Visible = true;
 
 		// Reorganize remaining boxes
 		main.CallDeferred("_ReorganizeBoxes");

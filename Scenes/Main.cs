@@ -154,9 +154,8 @@ public class Main : Node
 		{
 			// Starting - restore previous time scale
 			timeScale = previousTimeScale;
-			// Update speed slider to show current speed
-			var speedSlider = hud.GetNode<HSlider>("SpeedSlider");
-			speedSlider.Value = timeScale;
+			// Update speed slider to show current speed using exponential mapping
+			hud.SetSliderFromSpeed(timeScale);
 			hud.UpdateSpeedLabel(timeScale);
 		}
 		else
@@ -204,10 +203,9 @@ public class Main : Node
 			hud.UpdateSimulationButton(simulationRunning);
 		}
 
-		// Update the speed slider to show max value (1000)
+		// Update the speed slider to show max value using exponential mapping
 		var hud2 = GetNode<Hud>("Hud");
-		var speedSlider = hud2.GetNode<HSlider>("SpeedSlider");
-		speedSlider.Value = speedSlider.MaxValue; // Set to maximum slider value
+		hud2.SetSliderFromSpeed(1000.0f); // This will set slider to its maximum position (100)
 
 		GD.Print("Max speed activated - simulation running at maximum speed");
 	}

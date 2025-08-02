@@ -6,6 +6,7 @@ public class Traveller : Node2D
 {
 	private static int _nextId = 0;
 	private int _travellerId;
+	private string _travellerName;
 
 	private Godot.Collections.Array<Vector2> _waypoints;
 	private int _currentIndex = 0;
@@ -31,7 +32,81 @@ public class Traveller : Node2D
 	private const int DELIVERED_BOXES_PER_ROW = 5;
 	private const float DELIVERED_BOX_SPACING = 25.0f;
 
+	// UI Elements
+	private Label _nameLabel;
+	private Label _activityLabel;
+
+	// Activity states
+	private enum TravellerActivity
+	{
+		Starting,
+		MovingToPickup,
+		PickingUp,
+		MovingToDelivery,
+		Delivering,
+		Returning,
+		Waiting,
+		Finished
+	}
+
+	private TravellerActivity _currentActivity = TravellerActivity.Starting;
+
+	// Names for travellers
+	private static readonly string[] _travellerNames = {
+		"Alex", "Blake", "Casey", "Dana", "Ellis", "Finley", "Gray", "Harper",
+		"Indie", "Jordan", "Kelly", "Logan", "Morgan", "Noel", "Oakley", "Parker",
+		"Quinn", "River", "Sage", "Taylor", "Unity", "Vale", "Wren", "Xander", "Yael", "Zara"
+	};
+
 	public List<TravellerSegment> Timeline { get; private set; } = new List<TravellerSegment>();
+
+	public override void _Ready()
+	{
+		// Generate traveller ID and name
+		_travellerId = _nextId++;
+		_travellerName = _travellerNames[_travellerId % _travellerNames.Length];
+
+		// Get UI elements
+		_nameLabel = GetNode<Label>("NameLabel");
+		_activityLabel = GetNode<Label>("ActivityLabel");
+
+		// Set initial name and activity
+		_nameLabel.Text = _travellerName;
+		_UpdateActivity(TravellerActivity.Starting);
+	}
+
+	private void _UpdateActivity(TravellerActivity activity)
+	{
+		_currentActivity = activity;
+
+		switch (activity)
+		{
+			case TravellerActivity.Starting:
+				_activityLabel.Text = "Starting journey";
+				break;
+			case TravellerActivity.MovingToPickup:
+				_activityLabel.Text = "Moving to pickup";
+				break;
+			case TravellerActivity.PickingUp:
+				_activityLabel.Text = "Picking up box";
+				break;
+			case TravellerActivity.MovingToDelivery:
+				_activityLabel.Text = "Delivering box";
+				break;
+			case TravellerActivity.Delivering:
+				_activityLabel.Text = "Dropping off box";
+				break;
+			case TravellerActivity.Returning:
+				_activityLabel.Text = "Returning for next";
+				break;
+			case TravellerActivity.Waiting:
+				_activityLabel.Text = "Waiting";
+				break;
+			case TravellerActivity.Finished:
+				_activityLabel.Text = "Journey complete";
+				break;
+		}
+	}
 
 	public override void _Process(float delta)
 	{
@@ -41,7 +116,16 @@ public class Traveller : Node2D
 		{
 			_delayTimer -= delta * scale;
 			if (_delayTimer <= 0.0f)
+			{
 				_isDelaying = false;
+				// Update activity when delay ends
+				if (_currentIndex == 0)
+					_UpdateActivity(TravellerActivity.MovingToPickup);
+				else if (_currentIndex == 1 && _hasPickedUpBox)
+					_UpdateActivity(TravellerActivity.MovingToDelivery);
+				else if (_returningToPickup)
+					_UpdateActivity(TravellerActivity.Returning);
+			}
 			return;
 		}
 
@@ -68,6 +152,8 @@ public class Traveller : Node2D
 			// Check if we've reached the middle position (pickup point)
 			if (_currentIndex == 1 && _carriedBox != null && !_hasPickedUpBox)
 			{
+				_UpdateActivity(TravellerActivity.PickingUp);
+
 				// Remove the box from the scene and attach it to the traveller
 				_carriedBox.GetParent().RemoveChild(_carriedBox);
 				AddChild(_carriedBox);
@@ -84,6 +170,8 @@ public class Traveller : Node2D
 			{
 				if (_carriedBox != null && !_hasDeliveredBox && _hasPickedUpBox)
 				{
+					_UpdateActivity(TravellerActivity.Delivering);
+
 					// Drop off the box at end position
 					var environment = GetTree().Root.GetNode<Node>("Main/Environment");
 					var deliveredBoxContainer = environment.GetNode<Node2D>("DeliveredBoxes");
@@ -121,6 +209,7 @@ public class Traveller : Node2D
 					else
 					{
 						// No more boxes, complete the journey
+						_UpdateActivity(TravellerActivity.Finished);
 						_isMoving = false;
 						_onJourneyComplete?.Invoke();
 					}
@@ -128,6 +217,7 @@ public class Traveller : Node2D
 				else
 				{
 					// No box to deliver, just finish
+					_UpdateActivity(TravellerActivity.Finished);
 					_isMoving = false;
 					_onJourneyComplete?.Invoke();
 				}
@@ -135,6 +225,7 @@ public class Traveller : Node2D
 			else
 			{
 				// prepare for next leg…
+				_UpdateActivity(TravellerActivity.Waiting);
 				_isDelaying = true;
 				_delayTimer = _delay;
 				_start = Position;
@@ -146,6 +237,8 @@ public class Traveller : Node2D
 
 	private void _StartReturnJourney()
 	{
+		_UpdateActivity(TravellerActivity.Returning);
+
 		// Set up return journey from end back to middle
 		var env = GetTree().Root.GetNode<Node>("Main/Environment");
 		var midC = env.GetNode<ColorRect>("MiddlePosition");
@@ -166,10 +259,13 @@ public class Traveller : Node2D
 		if (main._availableBoxes.Count == 0)
 		{
 			// No more boxes, complete journey
+			_UpdateActivity(TravellerActivity.Finished);
 			_isMoving = false;
 			_onJourneyComplete?.Invoke();
 			return;
 		}
+
+		_UpdateActivity(TravellerActivity.PickingUp);
 
 		// Get next box
 		var nextBox = main._availableBoxes.Dequeue();
@@ -232,6 +328,9 @@ public class Traveller : Node2D
 		_returningToPickup = false;
 		_start = Position;
 		_segmentStartTime = _getSimTime();
+
+		// Set initial activity
+		_UpdateActivity(TravellerActivity.MovingToPickup);
 	}
 
 

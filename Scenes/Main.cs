@@ -11,6 +11,8 @@ public class Main : Node
 	// Simulation time and time scale
 	public float simTime = 0f;
 	private float timeScale = 1.0f;
+	private bool simulationRunning = true;
+	private const int TOTAL_BOXES = 10;
 
 	// queue of all unclaimed boxes
 	public Queue<Node2D> _availableBoxes = new Queue<Node2D>();
@@ -91,6 +93,7 @@ public class Main : Node
 	private void OnResetSimulation()
 	{
 		simTime = 0f;
+		simulationRunning = true; // Restart simulation
 
 		// Clear all travellers
 		var travellers = new List<Node>();
@@ -129,6 +132,13 @@ public class Main : Node
 
 	private void _SpawnTraveller()
 	{
+		// Don't spawn if simulation is complete
+		if (!simulationRunning)
+		{
+			GD.Print("Simulation is complete. Reset to spawn more travellers.");
+			return;
+		}
+
 		// only spawn if there's still a box to carry
 		if (_availableBoxes.Count == 0)
 		{
@@ -223,19 +233,50 @@ public class Main : Node
 		return timelines;
 	}
 
-
-
+	// Method to check if simulation is running
+	public bool IsSimulationRunning()
+	{
+		return simulationRunning;
+	}
 
 	// Optional: you can update simTime in _Process
 	public override void _Process(float delta)
 	{
-		simTime += delta * timeScale;
+		// Only update simulation time if running
+		if (simulationRunning)
+		{
+			simTime += delta * timeScale;
+
+			// Check if all boxes have been delivered
+			CheckSimulationComplete();
+		}
 
 		var hud = GetNode<Hud>("Hud");
 		var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)simTime).ToLocalTime();
 		string timeString = dateTime.ToString("HH:mm:ss");
-		hud.UpdateSimTime(timeString);
+		string statusText = simulationRunning ? timeString : $"{timeString} [COMPLETE]";
+		hud.UpdateSimTime(statusText);
+	}
 
+	private void CheckSimulationComplete()
+	{
+		// Get delivered boxes count
+		var env = GetNode<Node>("Environment");
+		var deliveredBoxContainer = env.GetNodeOrNull<Node2D>("DeliveredBoxes");
 
+		if (deliveredBoxContainer != null)
+		{
+			int deliveredCount = deliveredBoxContainer.GetChildCount();
+
+			// Stop simulation when all boxes are delivered and no active travellers
+			if (deliveredCount >= TOTAL_BOXES && _activeTravellers.Count == 0)
+			{
+				if (simulationRunning)
+				{
+					simulationRunning = false;
+					GD.Print($"Simulation Complete! All {TOTAL_BOXES} boxes delivered in {simTime:F1} seconds.");
+				}
+			}
+		}
 	}
 }

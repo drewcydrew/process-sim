@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 public class Hud : CanvasLayer
 {
@@ -45,6 +46,9 @@ public class Hud : CanvasLayer
 		// Get Gantt chart components
 		_ganttChart = GetNode<Panel>("GanttChart");
 		_ganttContent = GetNode<Control>("GanttChart/ScrollContainer/GanttContent");
+
+		// Update download button text
+		UpdateDownloadButtonText();
 	}
 
 	private void OnSpawnButtonPressed()
@@ -230,6 +234,19 @@ public class Hud : CanvasLayer
 
 		// Add time scale at bottom
 		AddTimeScale(minTime, maxTime, contentHeight, dynamicTimeScale);
+
+		// Update download button text
+		UpdateDownloadButtonText();
+	}
+
+	private void UpdateDownloadButtonText()
+	{
+		var downloadButton = GetNodeOrNull<Button>("GanttChart/DownloadButton");
+		if (downloadButton != null)
+		{
+			int travellerCount = _persistentTimelines.Count;
+			downloadButton.Text = travellerCount > 0 ? $"Download CSV ({travellerCount} travellers)" : "Download CSV";
+		}
 	}
 
 	private void AddTimeScale(float minTime, float maxTime, float contentHeight, float timeScale)
@@ -284,5 +301,124 @@ public class Hud : CanvasLayer
 			case Traveller.TravellerActivity.Finished: return "Done";
 			default: return "?";
 		}
+	}
+
+	private void OnDownloadCsvPressed()
+	{
+		if (_persistentTimelines.Count == 0)
+		{
+			GD.Print("No traveller data to export.");
+			return;
+		}
+
+		try
+		{
+			string csvContent = GenerateCsvData();
+			string fileName = $"traveller_timeline_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+
+			// Check if running on web platform
+			if (OS.GetName() == "HTML5")
+			{
+				// Web platform - use JavaScript to trigger download
+				DownloadCsvOnWeb(csvContent, fileName);
+			}
+			else
+			{
+				// Desktop platform - use file system
+				DownloadCsvOnDesktop(csvContent, fileName);
+			}
+		}
+		catch (Exception e)
+		{
+			GD.PrintErr($"Error exporting CSV: {e.Message}");
+		}
+	}
+
+	private void DownloadCsvOnWeb(string csvContent, string fileName)
+	{
+		// Escape content for JavaScript
+		string escapedContent = csvContent.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r");
+
+		// JavaScript code to create and download the file
+		string jsCode = $@"
+			var content = ""{escapedContent}"";
+			var blob = new Blob([content], {{ type: 'text/csv;charset=utf-8;' }});
+			var link = document.createElement('a');
+			var url = URL.createObjectURL(blob);
+			link.setAttribute('href', url);
+			link.setAttribute('download', '{fileName}');
+			link.style.visibility = 'hidden';
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			URL.revokeObjectURL(url);
+		";
+
+		// Execute JavaScript to trigger download
+		JavaScript.Eval(jsCode);
+		GD.Print($"CSV download triggered for web: {fileName}");
+	}
+
+	private void DownloadCsvOnDesktop(string csvContent, string fileName)
+	{
+		string filePath = OS.GetUserDataDir() + "/" + fileName;
+
+		var file = new File();
+		file.Open(filePath, File.ModeFlags.Write);
+		file.StoreString(csvContent);
+		file.Close();
+
+		GD.Print($"CSV exported successfully to: {filePath}");
+
+		// Also try to save to Downloads folder if possible
+		string downloadsPath = OS.GetSystemDir(OS.SystemDir.Downloads) + "/" + fileName;
+		var downloadsFile = new File();
+		if (downloadsFile.Open(downloadsPath, File.ModeFlags.Write) == Error.Ok)
+		{
+			downloadsFile.StoreString(csvContent);
+			downloadsFile.Close();
+			GD.Print($"CSV also saved to Downloads: {downloadsPath}");
+		}
+	}
+
+	private string GenerateCsvData()
+	{
+		var csv = new StringBuilder();
+
+		// Add metadata header
+		var main = GetTree().Root.GetNode<Main>("Main");
+		csv.AppendLine($"# Process Simulation Timeline Export");
+		csv.AppendLine($"# Export Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+		csv.AppendLine($"# Simulation Time: {main.simTime:F2} seconds");
+		csv.AppendLine($"# Simulation Status: {(main.IsSimulationRunning() ? "Running" : "Complete")}");
+		csv.AppendLine($"# Total Travellers: {_persistentTimelines.Count}");
+		csv.AppendLine($"#");
+
+		// CSV Header with more detailed information
+		csv.AppendLine("TravellerID,TravellerName,ActivityType,StartTime,EndTime,Duration,SequenceNumber");
+
+		// Sort travellers by ID for consistent output
+		var sortedTravellers = _persistentTimelines.Values.OrderBy(t => t.Id).ToList();
+
+		foreach (var traveller in sortedTravellers)
+		{
+			for (int i = 0; i < traveller.Timeline.Count; i++)
+			{
+				var segment = traveller.Timeline[i];
+				float endTime = segment.EndTime == -1 ?
+					GetTree().Root.GetNode<Main>("Main").simTime : segment.EndTime;
+				float duration = endTime - segment.StartTime;
+
+				csv.AppendLine($"{traveller.Id}," +
+							  $"\"{traveller.Name}\"," +
+							  $"\"{segment.ActivityType}\"," +
+							  $"{segment.StartTime:F3}," +
+							  $"{endTime:F3}," +
+							  $"{duration:F3}," +
+							  $"{i + 1}");
+			}
+		}
+
+		return csv.ToString();
 	}
 }

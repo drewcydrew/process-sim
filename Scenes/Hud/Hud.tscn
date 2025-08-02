@@ -54,6 +54,13 @@ margin_bottom = 25.0
 custom_colors/font_color = Color( 1, 1, 1, 1 )
 text = "Traveller Activity Timeline"
 
+[node name="DownloadButton" type="Button" parent="GanttChart"]
+margin_left = 850.0
+margin_top = 5.0
+margin_right = 990.0
+margin_bottom = 25.0
+text = "Download CSV"
+
 [node name="ScrollContainer" type="ScrollContainer" parent="GanttChart"]
 margin_left = 10.0
 margin_top = 30.0
@@ -69,3 +76,4 @@ size_flags_vertical = 3
 [connection signal="pressed" from="SpawnButton" to="." method="OnSpawnButtonPressed"]
 [connection signal="value_changed" from="SpeedSlider" to="." method="OnSpeedSliderChanged"]
 [connection signal="pressed" from="Reset" to="." method="OnResetPressed"]
+[connection signal="pressed" from="GanttChart/DownloadButton" to="." method="OnDownloadCsvPressed"]

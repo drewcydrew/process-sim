@@ -62,8 +62,8 @@ public class Configuration : Control
         UpdateSpeedLabel();
         UpdateDelayLabel();
 
-        // Initially hide the configuration panel
-        Visible = false;
+        // Always visible since it's now in a tab
+        Visible = true;
     }
 
     private void OnBoxesChanged(float value)
@@ -103,9 +103,6 @@ public class Configuration : Control
         // Notify Main of configuration changes
         ConfigurationChanged?.Invoke(StartingBoxes, StartingTravellers, TravellerSpeed, DelayBetweenActivities);
 
-        // Hide the configuration panel
-        Visible = false;
-
         GD.Print($"Configuration applied: {StartingBoxes} boxes, {StartingTravellers} travellers, {TravellerSpeed:F1}s speed, {DelayBetweenActivities:F1}s delay");
     }
 
@@ -131,8 +128,7 @@ public class Configuration : Control
 
     private void OnClosePressed()
     {
-        // Hide the configuration panel without applying changes
-        Visible = false;
+        // Close button is no longer needed in tab view, but keep for compatibility
         ConfigurationClosed?.Invoke();
     }
 

@@ -197,7 +197,7 @@ public class Traveller : Node2D
 					_UpdateActivity(TravellerActivity.Delivering);
 
 					// Drop off the box at end position
-					var environment = GetTree().Root.GetNode<Node>("Main/Environment");
+					var environment = GetTree().Root.GetNode<Node>("Main/UI/TabContainer/Environment");
 					var deliveredBoxContainer = environment.GetNode<Node2D>("DeliveredBoxes");
 					var endPosition = environment.GetNode<ColorRect>("EndPosition");
 
@@ -264,7 +264,7 @@ public class Traveller : Node2D
 		_UpdateActivity(TravellerActivity.Returning);
 
 		// Set up return journey from end back to middle
-		var env = GetTree().Root.GetNode<Node>("Main/Environment");
+		var env = GetTree().Root.GetNode<Node>("Main/UI/TabContainer/Environment");
 		var midC = env.GetNode<ColorRect>("MiddlePosition");
 
 		_waypoints = new Godot.Collections.Array<Vector2> { midC.RectPosition };
@@ -312,7 +312,7 @@ public class Traveller : Node2D
 		_UpdateActivity(TravellerActivity.MovingToDelivery);
 
 		// Set up journey from middle to end (we're already at middle)
-		var env = GetTree().Root.GetNode<Node>("Main/Environment");
+		var env = GetTree().Root.GetNode<Node>("Main/UI/TabContainer/Environment");
 		var endC = env.GetNode<ColorRect>("EndPosition");
 
 		_waypoints = new Godot.Collections.Array<Vector2> { endC.RectPosition };

@@ -8,6 +8,12 @@ public class Traveller : Node2D
 	private int _travellerId;
 	private string _travellerName;
 
+	// Static method to reset ID counter for new simulation runs
+	public static void ResetIdCounter()
+	{
+		_nextId = 0;
+	}
+
 	private Godot.Collections.Array<Vector2> _waypoints;
 	private int _currentIndex = 0;
 	private float _duration = 2.0f;

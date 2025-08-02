@@ -7,13 +7,17 @@ public class Main : Node
 	[Export]
 	public PackedScene TravellerScene;
 	[Export] public PackedScene BoxScene;
+	[Export] public PackedScene SimulationTravellerScene; // New scene for discrete event travellers
 
-	// Simulation time and time scale
-	public float simTime = 0f;
+	// Discrete event simulation
+	private DiscreteEventSimulation _simulation;
+
+	// Simulation time and time scale - now managed by discrete event simulation
+	public float simTime => _simulation?.CurrentTime ?? 0f;
 	private float timeScale = 1.0f;
-	private float previousTimeScale = 1.0f; // Store previous time scale for resume
+	private float previousTimeScale = 1.0f;
 	private bool simulationRunning = true;
-	private bool hasEverStarted = false; // Track if simulation has started at least once
+	private bool hasEverStarted = false;
 	private const int TOTAL_BOXES = 10;
 
 	// queue of all unclaimed boxes
@@ -21,6 +25,7 @@ public class Main : Node
 
 	// List of active travellers for Gantt chart tracking
 	public List<Traveller> _activeTravellers = new List<Traveller>();
+	public List<SimulationTraveller> _activeSimulationTravellers = new List<SimulationTraveller>();
 
 	// Grid configuration for box positioning
 	private const int BOXES_PER_ROW = 5;
@@ -28,6 +33,11 @@ public class Main : Node
 
 	public override void _Ready()
 	{
+		// Initialize discrete event simulation
+		_simulation = new DiscreteEventSimulation();
+		AddChild(_simulation);
+		_simulation.Name = "DiscreteEventSimulation";
+
 		var hud = GetNode<Hud>("Hud");
 		hud.SpawnTraveller += () =>
 		{
@@ -106,17 +116,27 @@ public class Main : Node
 
 	private void OnResetSimulation()
 	{
-		simTime = 0f;
+		// Reset discrete event simulation
+		_simulation.Reset();
+
 		timeScale = 1.0f; // Reset to normal speed
 		previousTimeScale = 1.0f; // Reset previous speed
 		simulationRunning = true; // Restart simulation
 		hasEverStarted = false; // Reset first start tracking
 
+		// Ensure discrete event simulation is running
+		_simulation.TimeScale = timeScale;
+		_simulation.IsRunning = true;
+
+		// Reset traveller ID counters for consistent Gantt chart display
+		Traveller.ResetIdCounter();
+		SimulationTraveller.ResetIdCounter();
+
 		// Clear all travellers
 		var travellers = new List<Node>();
 		foreach (Node child in GetChildren())
 		{
-			if (child is Traveller)
+			if (child is Traveller || child is SimulationTraveller)
 			{
 				travellers.Add(child);
 			}
@@ -127,23 +147,27 @@ public class Main : Node
 			traveller.QueueFree();
 		}
 
-		// Clear active travellers list
+		// Clear active travellers lists
 		_activeTravellers.Clear();
+		_activeSimulationTravellers.Clear();
 
 		// Reset boxes
 		_InitializeBoxes();
 
-		// Spawn one traveller at the start of the reset simulation
-		_SpawnTraveller();
+		// Use CallDeferred to ensure everything is cleaned up before spawning new traveller
+		CallDeferred(nameof(_SpawnTravellerDeferred));
 		hasEverStarted = true;
 
 		// Update HUD button state
 		var hud = GetNode<Hud>("Hud");
 		hud.UpdateSimulationButton(simulationRunning);
 
-		GD.Print("Simulation reset!");
+		GD.Print($"Simulation reset! Discrete event sim running: {_simulation.IsRunning}, time scale: {_simulation.TimeScale}");
 	}
-
+	private void _SpawnTravellerDeferred()
+	{
+		_SpawnTraveller();
+	}
 	private void OnToggleSimulation()
 	{
 		simulationRunning = !simulationRunning;
@@ -154,6 +178,9 @@ public class Main : Node
 		{
 			// Starting - restore previous time scale
 			timeScale = previousTimeScale;
+			_simulation.TimeScale = timeScale;
+			_simulation.IsRunning = true;
+
 			// Update speed slider to show current speed using exponential mapping
 			hud.SetSliderFromSpeed(timeScale);
 			hud.UpdateSpeedLabel(timeScale);
@@ -163,6 +190,9 @@ public class Main : Node
 			// Stopping - save current time scale and set to 0
 			previousTimeScale = timeScale;
 			timeScale = 0.0f;
+			_simulation.TimeScale = 0.0f;
+			_simulation.IsRunning = false;
+
 			// Update speed label to show stopped
 			hud.UpdateSpeedLabel(0.0f);
 		}
@@ -180,6 +210,7 @@ public class Main : Node
 		{
 			timeScale = newScale;
 			previousTimeScale = newScale; // Store as previous for when we stop/start
+			_simulation.TimeScale = newScale; // Update discrete event simulation
 		}
 		else
 		{
@@ -194,11 +225,13 @@ public class Main : Node
 		// This preserves data fidelity while running much faster than normal
 		timeScale = 1000.0f; // High speed for fast completion
 		previousTimeScale = 1000.0f; // Store as previous
+		_simulation.TimeScale = timeScale;
 
 		// Ensure simulation is running
 		if (!simulationRunning)
 		{
 			simulationRunning = true;
+			_simulation.IsRunning = true;
 			var hud = GetNode<Hud>("Hud");
 			hud.UpdateSimulationButton(simulationRunning);
 		}
@@ -229,45 +262,82 @@ public class Main : Node
 		// dequeue one box but DON'T remove it from the scene yet
 		var boxToCarry = _availableBoxes.Dequeue();
 
-		// instance traveller
-		var tNode = TravellerScene.Instance() as Node2D;
+		// Use simulation traveller instead of regular traveller
+		var tNode = SimulationTravellerScene?.Instance() as Node2D ?? TravellerScene.Instance() as Node2D;
 		AddChild(tNode);
-		var traveller = tNode as Traveller;
 
-		// Add to active travellers list
-		_activeTravellers.Add(traveller);
+		if (tNode is SimulationTraveller simTraveller)
+		{
+			// Add to active simulation travellers list
+			_activeSimulationTravellers.Add(simTraveller);
 
-		// get the waypoints
-		var env = GetNode<Node>("Environment");
-		var startC = env.GetNode<ColorRect>("StartPosition");
-		var midC = env.GetNode<ColorRect>("MiddlePosition");
-		var endC = env.GetNode<ColorRect>("EndPosition");
+			// get the waypoints
+			var env = GetNode<Node>("Environment");
+			var startC = env.GetNode<ColorRect>("StartPosition");
+			var midC = env.GetNode<ColorRect>("MiddlePosition");
+			var endC = env.GetNode<ColorRect>("EndPosition");
 
-		// Start traveller at start position
-		traveller.Position = startC.RectPosition;
+			// Start traveller at start position
+			simTraveller.Position = startC.RectPosition;
 
-		// Journey goes from start → middle → end
-		var points = new Godot.Collections.Array<Vector2> {
-			midC.RectPosition,
-			endC.RectPosition
-		};
+			// Journey goes from start → middle → end
+			var points = new List<Vector2> {
+				midC.RectPosition,
+				endC.RectPosition
+			};
 
-		// start the journey, with callback to clean up traveller only when no more boxes
-		traveller.StartJourney(
-			points,
-			2.0f,      // duration
-			0.5f,      // delay
-			() => timeScale,
-			() => simTime,
-			boxToCarry, // ← box to carry
-			() =>
-			{
-				// callback when journey is complete (no more boxes)
-				_activeTravellers.Remove(traveller);
-				traveller.QueueFree();
-				GD.Print("All boxes delivered!");
-			}
-		);
+			// start the journey, with callback to clean up traveller only when no more boxes
+			simTraveller.StartJourney(
+				points,
+				2.0f,      // duration
+				0.5f,      // delay
+				boxToCarry, // ← box to carry
+				() =>
+				{
+					// callback when journey is complete (no more boxes)
+					_activeSimulationTravellers.Remove(simTraveller);
+					simTraveller.QueueFree();
+					GD.Print("All boxes delivered!");
+				}
+			);
+		}
+		else if (tNode is Traveller traveller)
+		{
+			// Fallback to old traveller system
+			_activeTravellers.Add(traveller);
+
+			// get the waypoints
+			var env = GetNode<Node>("Environment");
+			var startC = env.GetNode<ColorRect>("StartPosition");
+			var midC = env.GetNode<ColorRect>("MiddlePosition");
+			var endC = env.GetNode<ColorRect>("EndPosition");
+
+			// Start traveller at start position
+			traveller.Position = startC.RectPosition;
+
+			// Journey goes from start → middle → end
+			var points = new Godot.Collections.Array<Vector2> {
+				midC.RectPosition,
+				endC.RectPosition
+			};
+
+			// start the journey, with callback to clean up traveller only when no more boxes
+			traveller.StartJourney(
+				points,
+				2.0f,      // duration
+				0.5f,      // delay
+				() => timeScale,
+				() => simTime,
+				boxToCarry, // ← box to carry
+				() =>
+				{
+					// callback when journey is complete (no more boxes)
+					_activeTravellers.Remove(traveller);
+					traveller.QueueFree();
+					GD.Print("All boxes delivered!");
+				}
+			);
+		}
 	}
 
 	public void _ReorganizeBoxes()
@@ -303,6 +373,8 @@ public class Main : Node
 	public List<Traveller.TravellerInfo> GetAllTravellerTimelines()
 	{
 		var timelines = new List<Traveller.TravellerInfo>();
+
+		// Get data from regular travellers
 		foreach (var traveller in _activeTravellers)
 		{
 			if (traveller != null && IsInstanceValid(traveller))
@@ -310,6 +382,16 @@ public class Main : Node
 				timelines.Add(traveller.GetTravellerInfo());
 			}
 		}
+
+		// Get data from simulation travellers
+		foreach (var simTraveller in _activeSimulationTravellers)
+		{
+			if (simTraveller != null && IsInstanceValid(simTraveller))
+			{
+				timelines.Add(simTraveller.GetTravellerInfo());
+			}
+		}
+
 		return timelines;
 	}
 
@@ -322,14 +404,11 @@ public class Main : Node
 	// Optional: you can update simTime in _Process
 	public override void _Process(float delta)
 	{
-		// Only update simulation time if running
-		if (simulationRunning)
-		{
-			simTime += delta * timeScale;
+		// The discrete event simulation handles time advancement
+		// We just need to update the HUD and check for completion
 
-			// Check if all boxes have been delivered
-			CheckSimulationComplete();
-		}
+		// Check if all boxes have been delivered
+		CheckSimulationComplete();
 
 		var hud = GetNode<Hud>("Hud");
 		var dateTime = DateTimeOffset.FromUnixTimeSeconds((long)simTime).ToLocalTime();
@@ -349,11 +428,12 @@ public class Main : Node
 			int deliveredCount = deliveredBoxContainer.GetChildCount();
 
 			// Stop simulation when all boxes are delivered and no active travellers
-			if (deliveredCount >= TOTAL_BOXES && _activeTravellers.Count == 0)
+			if (deliveredCount >= TOTAL_BOXES && _activeTravellers.Count == 0 && _activeSimulationTravellers.Count == 0)
 			{
 				if (simulationRunning)
 				{
 					simulationRunning = false;
+					_simulation.IsRunning = false;
 					GD.Print($"Simulation Complete! All {TOTAL_BOXES} boxes delivered in {simTime:F1} seconds.");
 				}
 			}

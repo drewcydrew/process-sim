@@ -102,6 +102,8 @@ public class Hud : CanvasLayer
 		var speedSlider = GetNode<HSlider>("SpeedSlider");
 		speedSlider.Value = ExponentialSpeedToSlider(1.0f);
 		UpdateSpeedLabel(1.0f);
+
+		GD.Print("HUD reset - cleared persistent timelines and Gantt chart");
 	}
 
 	private void OnSpeedSliderChanged(float value)
@@ -166,6 +168,13 @@ public class Hud : CanvasLayer
 		var currentTravellerData = main.GetAllTravellerTimelines();
 		float currentTime = main.simTime;
 
+		// Debug: Log traveller data
+		if (currentTravellerData.Count == 0 && _persistentTimelines.Count == 0)
+		{
+			// No data yet - this is normal immediately after reset
+			return;
+		}
+
 		// Update persistent timelines with current data
 		foreach (var traveller in currentTravellerData)
 		{
@@ -178,6 +187,7 @@ public class Hud : CanvasLayer
 			{
 				// Add new traveller
 				_persistentTimelines[traveller.Id] = traveller;
+				GD.Print($"Gantt: Added new traveller {traveller.Id} ({traveller.Name}) to timeline");
 			}
 		}
 

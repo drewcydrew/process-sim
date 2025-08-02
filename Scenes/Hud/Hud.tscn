@@ -40,6 +40,13 @@ margin_right = 707.0
 margin_bottom = 94.0
 text = "Reset"
 
+[node name="StopStartButton" type="Button" parent="."]
+margin_left = 720.0
+margin_top = 34.0
+margin_right = 847.0
+margin_bottom = 94.0
+text = "Stop"
+
 [node name="GanttChart" type="Panel" parent="."]
 margin_left = 15.0
 margin_top = 392.0
@@ -76,4 +83,5 @@ size_flags_vertical = 3
 [connection signal="pressed" from="SpawnButton" to="." method="OnSpawnButtonPressed"]
 [connection signal="value_changed" from="SpeedSlider" to="." method="OnSpeedSliderChanged"]
 [connection signal="pressed" from="Reset" to="." method="OnResetPressed"]
+[connection signal="pressed" from="StopStartButton" to="." method="OnToggleSimulationPressed"]
 [connection signal="pressed" from="GanttChart/DownloadButton" to="." method="OnDownloadCsvPressed"]

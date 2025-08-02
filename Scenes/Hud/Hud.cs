@@ -9,6 +9,7 @@ public class Hud : CanvasLayer
 	// C# event (no args)
 	public event Action SpawnTraveller;
 	public event Action ResetSimTime;
+	public event Action ToggleSimulation;
 
 	// C# event (with float arg)
 	public event Action<float> TimeScaleChanged;
@@ -51,9 +52,23 @@ public class Hud : CanvasLayer
 		UpdateDownloadButtonText();
 	}
 
+	public void UpdateSimulationButton(bool isRunning)
+	{
+		var stopStartButton = GetNodeOrNull<Button>("StopStartButton");
+		if (stopStartButton != null)
+		{
+			stopStartButton.Text = isRunning ? "Stop" : "Start";
+		}
+	}
+
 	private void OnSpawnButtonPressed()
 	{
 		SpawnTraveller?.Invoke();
+	}
+
+	private void OnToggleSimulationPressed()
+	{
+		ToggleSimulation?.Invoke();
 	}
 
 	private void OnResetPressed()

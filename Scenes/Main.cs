@@ -12,6 +12,7 @@ public class Main : Node
 	public float simTime = 0f;
 	private float timeScale = 1.0f;
 	private bool simulationRunning = true;
+	private bool hasEverStarted = false; // Track if simulation has started at least once
 	private const int TOTAL_BOXES = 10;
 
 	// queue of all unclaimed boxes
@@ -34,8 +35,19 @@ public class Main : Node
 
 		hud.TimeScaleChanged += OnTimeScaleChanged;
 		hud.ResetSimTime += OnResetSimulation;
+		hud.ToggleSimulation += OnToggleSimulation;
 
 		_InitializeBoxes();
+
+		// Spawn one traveller at the start of the simulation
+		if (!hasEverStarted)
+		{
+			_SpawnTraveller();
+			hasEverStarted = true;
+		}
+
+		// Update HUD button state
+		hud.UpdateSimulationButton(simulationRunning);
 	}
 
 	private void _InitializeBoxes()
@@ -94,6 +106,7 @@ public class Main : Node
 	{
 		simTime = 0f;
 		simulationRunning = true; // Restart simulation
+		hasEverStarted = false; // Reset first start tracking
 
 		// Clear all travellers
 		var travellers = new List<Node>();
@@ -116,14 +129,27 @@ public class Main : Node
 		// Reset boxes
 		_InitializeBoxes();
 
+		// Spawn one traveller at the start of the reset simulation
+		_SpawnTraveller();
+		hasEverStarted = true;
+
+		// Update HUD button state
+		var hud = GetNode<Hud>("Hud");
+		hud.UpdateSimulationButton(simulationRunning);
+
 		GD.Print("Simulation reset!");
 	}
 
-	private void OnResetSimTime()
+	private void OnToggleSimulation()
 	{
-		simTime = 0f;
-	}
+		simulationRunning = !simulationRunning;
 
+		// Update HUD button state
+		var hud = GetNode<Hud>("Hud");
+		hud.UpdateSimulationButton(simulationRunning);
+
+		GD.Print($"Simulation {(simulationRunning ? "started" : "stopped")}");
+	}
 
 	public void OnTimeScaleChanged(float newScale)
 	{

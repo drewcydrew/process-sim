@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Scenes/GanttChart/GanttChart.cs" type="Script" id=1]
+
+[node name="GanttChart" type="Panel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource( 1 )
+
+[node name="GanttTitle" type="Label" parent="."]
+margin_left = 10.0
+margin_top = 5.0
+margin_right = 200.0
+margin_bottom = 25.0
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Traveller Activity Timeline"
+
+[node name="DownloadButton" type="Button" parent="."]
+margin_left = 850.0
+margin_top = 5.0
+margin_right = 990.0
+margin_bottom = 25.0
+text = "Download CSV"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 10.0
+margin_top = 30.0
+margin_right = -10.0
+margin_bottom = -10.0
+
+[node name="GanttContent" type="Control" parent="ScrollContainer"]
+margin_right = 966.0
+margin_bottom = 394.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[connection signal="pressed" from="DownloadButton" to="." method="OnDownloadCsvPressed"]

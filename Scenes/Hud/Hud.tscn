@@ -6,10 +6,10 @@
 script = ExtResource( 1 )
 
 [node name="SpawnButton" type="Button" parent="."]
-margin_left = 96.0
-margin_top = 21.0
-margin_right = 247.0
-margin_bottom = 81.0
+margin_left = 795.0
+margin_top = 25.0
+margin_right = 946.0
+margin_bottom = 85.0
 text = "Spawn Traveller"
 
 [node name="TimeLabel" type="Label" parent="."]
@@ -18,42 +18,45 @@ margin_bottom = 56.0
 text = "Time"
 
 [node name="SpeedLabel" type="Label" parent="."]
-margin_left = 336.0
-margin_top = 34.0
-margin_right = 438.0
-margin_bottom = 54.0
+margin_left = 55.0
+margin_top = 10.0
+margin_right = 157.0
+margin_bottom = 30.0
 text = "Speed: 1.0x"
 
 [node name="SpeedSlider" type="HSlider" parent="."]
-margin_left = 289.0
-margin_top = 55.0
-margin_right = 561.0
-margin_bottom = 95.0
-min_value = 0.0
-max_value = 100.0
-step = 1.0
-value = 0.0
+margin_left = 12.0
+margin_top = 36.0
+margin_right = 196.0
+margin_bottom = 74.0
 
 [node name="Reset" type="Button" parent="."]
-margin_left = 580.0
-margin_top = 34.0
-margin_right = 707.0
-margin_bottom = 94.0
+margin_left = 519.0
+margin_top = 21.0
+margin_right = 646.0
+margin_bottom = 81.0
 text = "Reset"
 
 [node name="StopStartButton" type="Button" parent="."]
-margin_left = 720.0
-margin_top = 34.0
-margin_right = 847.0
-margin_bottom = 94.0
+margin_left = 366.0
+margin_top = 19.0
+margin_right = 493.0
+margin_bottom = 79.0
 text = "Stop"
 
 [node name="MaxSpeedButton" type="Button" parent="."]
-margin_left = 860.0
-margin_top = 34.0
-margin_right = 987.0
-margin_bottom = 94.0
+margin_left = 211.0
+margin_top = 18.0
+margin_right = 338.0
+margin_bottom = 78.0
 text = "Max Speed"
+
+[node name="ConfigButton" type="Button" parent="."]
+margin_left = 658.0
+margin_top = 21.0
+margin_right = 785.0
+margin_bottom = 81.0
+text = "Config"
 
 [node name="GanttChart" type="Panel" parent="."]
 margin_left = 15.0
@@ -93,4 +96,5 @@ size_flags_vertical = 3
 [connection signal="pressed" from="Reset" to="." method="OnResetPressed"]
 [connection signal="pressed" from="StopStartButton" to="." method="OnToggleSimulationPressed"]
 [connection signal="pressed" from="MaxSpeedButton" to="." method="OnMaxSpeedPressed"]
+[connection signal="pressed" from="ConfigButton" to="." method="OnConfigButtonPressed"]
 [connection signal="pressed" from="GanttChart/DownloadButton" to="." method="OnDownloadCsvPressed"]

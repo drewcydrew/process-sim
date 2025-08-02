@@ -11,6 +11,7 @@ public class Hud : CanvasLayer
 	public event Action ResetSimTime;
 	public event Action ToggleSimulation;
 	public event Action MaxSpeed;
+	public event Action ShowConfiguration;
 
 	// C# event (with float arg)
 	public event Action<float> TimeScaleChanged;
@@ -83,6 +84,11 @@ public class Hud : CanvasLayer
 		MaxSpeed?.Invoke();
 		// Update speed label to show MAX (using 1000x speed)
 		UpdateSpeedLabel(1000.0f);
+	}
+
+	private void OnConfigButtonPressed()
+	{
+		ShowConfiguration?.Invoke();
 	}
 
 	private void OnResetPressed()

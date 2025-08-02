@@ -3,10 +3,10 @@
 [node name="Environment" type="CanvasLayer"]
 
 [node name="StartPosition" type="ColorRect" parent="."]
-margin_left = 907.0
-margin_top = 65.0
-margin_right = 947.0
-margin_bottom = 110.0
+margin_left = 938.0
+margin_top = 135.0
+margin_right = 978.0
+margin_bottom = 180.0
 
 [node name="MiddlePosition" type="ColorRect" parent="."]
 margin_left = 44.0
@@ -15,10 +15,10 @@ margin_right = 84.0
 margin_bottom = 239.0
 
 [node name="EndPosition" type="ColorRect" parent="."]
-margin_left = 916.0
-margin_top = 214.0
-margin_right = 956.0
-margin_bottom = 254.0
+margin_left = 939.0
+margin_top = 342.0
+margin_right = 979.0
+margin_bottom = 382.0
 
 [node name="Boxes" type="Node2D" parent="."]
 

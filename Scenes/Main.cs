@@ -12,13 +12,17 @@ public class Main : Node
 	// Discrete event simulation
 	private DiscreteEventSimulation _simulation;
 
+	// Configuration
+	private Configuration _configuration;
+	private ConfigurationData _currentConfig;
+
 	// Simulation time and time scale - now managed by discrete event simulation
 	public float simTime => _simulation?.CurrentTime ?? 0f;
 	private float timeScale = 1.0f;
 	private float previousTimeScale = 1.0f;
 	private bool simulationRunning = true;
 	private bool hasEverStarted = false;
-	private const int TOTAL_BOXES = 10;
+	private int totalBoxes = 10; // Will be set by configuration
 
 	// queue of all unclaimed boxes
 	public Queue<Node2D> _availableBoxes = new Queue<Node2D>();
@@ -38,6 +42,11 @@ public class Main : Node
 		AddChild(_simulation);
 		_simulation.Name = "DiscreteEventSimulation";
 
+		// Initialize configuration
+		_configuration = GetNode<Configuration>("Configuration");
+		_currentConfig = _configuration.GetConfiguration();
+		totalBoxes = _currentConfig.StartingBoxes;
+
 		var hud = GetNode<Hud>("Hud");
 		hud.SpawnTraveller += () =>
 		{
@@ -48,10 +57,14 @@ public class Main : Node
 		hud.ResetSimTime += OnResetSimulation;
 		hud.ToggleSimulation += OnToggleSimulation;
 		hud.MaxSpeed += OnMaxSpeed;
+		hud.ShowConfiguration += OnShowConfiguration;
+
+		// Connect configuration events
+		_configuration.ConfigurationChanged += OnConfigurationChanged;
 
 		_InitializeBoxes();
 
-		// Spawn one traveller at the start of the simulation
+		// Spawn one traveller at the start of the simulation (like before)
 		if (!hasEverStarted)
 		{
 			_SpawnTraveller();
@@ -93,8 +106,8 @@ public class Main : Node
 			}
 		}
 
-		// create 10 boxes at the middle location with grid positioning
-		for (int i = 0; i < 10; i++)
+		// create boxes based on configuration
+		for (int i = 0; i < totalBoxes; i++)
 		{
 			var box = BoxScene.Instance() as Node2D;
 
@@ -130,13 +143,12 @@ public class Main : Node
 
 		// Reset traveller ID counters for consistent Gantt chart display
 		Traveller.ResetIdCounter();
-		SimulationTraveller.ResetIdCounter();
 
 		// Clear all travellers
 		var travellers = new List<Node>();
 		foreach (Node child in GetChildren())
 		{
-			if (child is Traveller || child is SimulationTraveller)
+			if (child is Traveller)
 			{
 				travellers.Add(child);
 			}
@@ -149,13 +161,13 @@ public class Main : Node
 
 		// Clear active travellers lists
 		_activeTravellers.Clear();
-		_activeSimulationTravellers.Clear();
 
-		// Reset boxes
+		// Reset boxes based on current configuration
+		totalBoxes = _currentConfig.StartingBoxes;
 		_InitializeBoxes();
 
-		// Use CallDeferred to ensure everything is cleaned up before spawning new traveller
-		CallDeferred(nameof(_SpawnTravellerDeferred));
+		// Use CallDeferred to ensure everything is cleaned up before spawning new travellers
+		CallDeferred(nameof(_SpawnInitialTravellers));
 		hasEverStarted = true;
 
 		// Update HUD button state
@@ -167,6 +179,17 @@ public class Main : Node
 	private void _SpawnTravellerDeferred()
 	{
 		_SpawnTraveller();
+	}
+
+	private void _SpawnInitialTravellers()
+	{
+		// Schedule travellers to spawn 1 second apart in simulation time
+		for (int i = 0; i < _currentConfig.StartingTravellers; i++)
+		{
+			float spawnTime = simTime + (i * 1.0f); // 1 second apart
+			_simulation.ScheduleEvent(spawnTime, EventType.TravellerSpawn, null, (data) => _SpawnTraveller());
+			GD.Print($"Scheduled traveller {i + 1} to spawn at simulation time {spawnTime:F1}s");
+		}
 	}
 	private void OnToggleSimulation()
 	{
@@ -243,6 +266,25 @@ public class Main : Node
 		GD.Print("Max speed activated - simulation running at maximum speed");
 	}
 
+	private void OnShowConfiguration()
+	{
+		_configuration.ShowConfiguration();
+	}
+
+	private void OnConfigurationChanged(int startingBoxes, int startingTravellers, float travellerSpeed, float delayBetweenActivities)
+	{
+		// Update current configuration
+		_currentConfig.StartingBoxes = startingBoxes;
+		_currentConfig.StartingTravellers = startingTravellers;
+		_currentConfig.TravellerSpeed = travellerSpeed;
+		_currentConfig.DelayBetweenActivities = delayBetweenActivities;
+
+		totalBoxes = startingBoxes;
+
+		GD.Print($"Configuration changed: {startingBoxes} boxes, {startingTravellers} travellers, {travellerSpeed:F1}s speed, {delayBetweenActivities:F1}s delay");
+		GD.Print("Reset the simulation to apply the new configuration.");
+	}
+
 	private void _SpawnTraveller()
 	{
 		// Don't spawn if simulation is complete
@@ -262,82 +304,45 @@ public class Main : Node
 		// dequeue one box but DON'T remove it from the scene yet
 		var boxToCarry = _availableBoxes.Dequeue();
 
-		// Use simulation traveller instead of regular traveller
-		var tNode = SimulationTravellerScene?.Instance() as Node2D ?? TravellerScene.Instance() as Node2D;
+		// Use regular traveller (revert to original logic)
+		var tNode = TravellerScene.Instance() as Node2D;
 		AddChild(tNode);
+		var traveller = tNode as Traveller;
 
-		if (tNode is SimulationTraveller simTraveller)
-		{
-			// Add to active simulation travellers list
-			_activeSimulationTravellers.Add(simTraveller);
+		// Add to active travellers list
+		_activeTravellers.Add(traveller);
 
-			// get the waypoints
-			var env = GetNode<Node>("Environment");
-			var startC = env.GetNode<ColorRect>("StartPosition");
-			var midC = env.GetNode<ColorRect>("MiddlePosition");
-			var endC = env.GetNode<ColorRect>("EndPosition");
+		// get the waypoints
+		var env = GetNode<Node>("Environment");
+		var startC = env.GetNode<ColorRect>("StartPosition");
+		var midC = env.GetNode<ColorRect>("MiddlePosition");
+		var endC = env.GetNode<ColorRect>("EndPosition");
 
-			// Start traveller at start position
-			simTraveller.Position = startC.RectPosition;
+		// Start traveller at start position
+		traveller.Position = startC.RectPosition;
 
-			// Journey goes from start → middle → end
-			var points = new List<Vector2> {
-				midC.RectPosition,
-				endC.RectPosition
-			};
+		// Journey goes from start → middle → end
+		var points = new Godot.Collections.Array<Vector2> {
+			midC.RectPosition,
+			endC.RectPosition
+		};
 
-			// start the journey, with callback to clean up traveller only when no more boxes
-			simTraveller.StartJourney(
-				points,
-				2.0f,      // duration
-				0.5f,      // delay
-				boxToCarry, // ← box to carry
-				() =>
-				{
-					// callback when journey is complete (no more boxes)
-					_activeSimulationTravellers.Remove(simTraveller);
-					simTraveller.QueueFree();
-					GD.Print("All boxes delivered!");
-				}
-			);
-		}
-		else if (tNode is Traveller traveller)
-		{
-			// Fallback to old traveller system
-			_activeTravellers.Add(traveller);
-
-			// get the waypoints
-			var env = GetNode<Node>("Environment");
-			var startC = env.GetNode<ColorRect>("StartPosition");
-			var midC = env.GetNode<ColorRect>("MiddlePosition");
-			var endC = env.GetNode<ColorRect>("EndPosition");
-
-			// Start traveller at start position
-			traveller.Position = startC.RectPosition;
-
-			// Journey goes from start → middle → end
-			var points = new Godot.Collections.Array<Vector2> {
-				midC.RectPosition,
-				endC.RectPosition
-			};
-
-			// start the journey, with callback to clean up traveller only when no more boxes
-			traveller.StartJourney(
-				points,
-				2.0f,      // duration
-				0.5f,      // delay
-				() => timeScale,
-				() => simTime,
-				boxToCarry, // ← box to carry
-				() =>
-				{
-					// callback when journey is complete (no more boxes)
-					_activeTravellers.Remove(traveller);
-					traveller.QueueFree();
-					GD.Print("All boxes delivered!");
-				}
-			);
-		}
+		// start the journey, with callback to clean up traveller only when no more boxes
+		traveller.StartJourney(
+			points,
+			_currentConfig.TravellerSpeed,      // duration from config
+			_currentConfig.DelayBetweenActivities,      // delay from config
+			() => timeScale,
+			() => simTime,
+			boxToCarry, // ← box to carry
+			() =>
+			{
+				// callback when journey is complete (no more boxes)
+				_activeTravellers.Remove(traveller);
+				traveller.QueueFree();
+				GD.Print("All boxes delivered!");
+			}
+		);
 	}
 
 	public void _ReorganizeBoxes()
@@ -383,15 +388,6 @@ public class Main : Node
 			}
 		}
 
-		// Get data from simulation travellers
-		foreach (var simTraveller in _activeSimulationTravellers)
-		{
-			if (simTraveller != null && IsInstanceValid(simTraveller))
-			{
-				timelines.Add(simTraveller.GetTravellerInfo());
-			}
-		}
-
 		return timelines;
 	}
 
@@ -428,13 +424,13 @@ public class Main : Node
 			int deliveredCount = deliveredBoxContainer.GetChildCount();
 
 			// Stop simulation when all boxes are delivered and no active travellers
-			if (deliveredCount >= TOTAL_BOXES && _activeTravellers.Count == 0 && _activeSimulationTravellers.Count == 0)
+			if (deliveredCount >= totalBoxes && _activeTravellers.Count == 0)
 			{
 				if (simulationRunning)
 				{
 					simulationRunning = false;
 					_simulation.IsRunning = false;
-					GD.Print($"Simulation Complete! All {TOTAL_BOXES} boxes delivered in {simTime:F1} seconds.");
+					GD.Print($"Simulation Complete! All {totalBoxes} boxes delivered in {simTime:F1} seconds.");
 				}
 			}
 		}

@@ -37,7 +37,7 @@ public class Traveller : Node2D
 	private Label _activityLabel;
 
 	// Activity states
-	private enum TravellerActivity
+	public enum TravellerActivity
 	{
 		Starting,
 		MovingToPickup,
@@ -77,7 +77,23 @@ public class Traveller : Node2D
 
 	private void _UpdateActivity(TravellerActivity activity)
 	{
+		// End the previous activity if one was active
+		if (Timeline.Count > 0 && Timeline[Timeline.Count - 1].EndTime == -1)
+		{
+			Timeline[Timeline.Count - 1].EndTime = _getSimTime();
+		}
+
 		_currentActivity = activity;
+
+		// Start a new timeline segment for this activity
+		Timeline.Add(new TravellerSegment
+		{
+			StartTime = _getSimTime(),
+			EndTime = -1, // Will be set when activity changes
+			ActivityType = activity,
+			TravellerId = _travellerId,
+			TravellerName = _travellerName
+		});
 
 		switch (activity)
 		{
@@ -333,6 +349,27 @@ public class Traveller : Node2D
 		_UpdateActivity(TravellerActivity.MovingToPickup);
 	}
 
+	// Public method to get traveller info for Gantt chart
+	public TravellerInfo GetTravellerInfo()
+	{
+		return new TravellerInfo
+		{
+			Id = _travellerId,
+			Name = _travellerName,
+			Timeline = Timeline,
+			CurrentActivity = _currentActivity
+		};
+	}
+
+	// Helper class for Gantt chart data
+	public class TravellerInfo
+	{
+		public int Id;
+		public string Name;
+		public List<TravellerSegment> Timeline;
+		public TravellerActivity CurrentActivity;
+	}
+
 
 	public class TravellerSegment
 	{
@@ -341,5 +378,7 @@ public class Traveller : Node2D
 		public Vector2 From;
 		public Vector2 To;
 		public int TravellerId;
+		public string TravellerName;
+		public TravellerActivity ActivityType;
 	}
 }

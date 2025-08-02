@@ -6,10 +6,10 @@
 script = ExtResource( 1 )
 
 [node name="SpawnButton" type="Button" parent="."]
-margin_left = 15.0
-margin_top = 520.0
-margin_right = 166.0
-margin_bottom = 580.0
+margin_left = 96.0
+margin_top = 21.0
+margin_right = 247.0
+margin_bottom = 81.0
 text = "Spawn Traveller"
 
 [node name="TimeLabel" type="Label" parent="."]
@@ -18,27 +18,53 @@ margin_bottom = 56.0
 text = "Time"
 
 [node name="SpeedLabel" type="Label" parent="."]
-margin_left = 178.0
-margin_top = 520.0
-margin_right = 280.0
-margin_bottom = 540.0
+margin_left = 336.0
+margin_top = 34.0
+margin_right = 438.0
+margin_bottom = 54.0
 text = "Speed: 1.0x"
 
 [node name="SpeedSlider" type="HSlider" parent="."]
-margin_left = 178.0
-margin_top = 540.0
-margin_right = 450.0
-margin_bottom = 580.0
+margin_left = 289.0
+margin_top = 55.0
+margin_right = 561.0
+margin_bottom = 95.0
 max_value = 5.0
 step = 0.1
 value = 1.0
 
 [node name="Reset" type="Button" parent="."]
-margin_left = 460.0
-margin_top = 520.0
-margin_right = 587.0
-margin_bottom = 580.0
+margin_left = 580.0
+margin_top = 34.0
+margin_right = 707.0
+margin_bottom = 94.0
 text = "Reset"
+
+[node name="GanttChart" type="Panel" parent="."]
+margin_left = 15.0
+margin_top = 392.0
+margin_right = 1020.0
+margin_bottom = 584.0
+
+[node name="GanttTitle" type="Label" parent="GanttChart"]
+margin_left = 10.0
+margin_top = 5.0
+margin_right = 200.0
+margin_bottom = 25.0
+custom_colors/font_color = Color( 1, 1, 1, 1 )
+text = "Traveller Activity Timeline"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="GanttChart"]
+margin_left = 10.0
+margin_top = 30.0
+margin_right = 995.0
+margin_bottom = 182.0
+
+[node name="GanttContent" type="Control" parent="GanttChart/ScrollContainer"]
+margin_right = 985.0
+margin_bottom = 152.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [connection signal="pressed" from="SpawnButton" to="." method="OnSpawnButtonPressed"]
 [connection signal="value_changed" from="SpeedSlider" to="." method="OnSpeedSliderChanged"]

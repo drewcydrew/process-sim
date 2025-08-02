@@ -9,11 +9,14 @@ public class Main : Node
 	[Export] public PackedScene BoxScene;
 
 	// Simulation time and time scale
-	private float simTime = 0f;
+	public float simTime = 0f;
 	private float timeScale = 1.0f;
 
 	// queue of all unclaimed boxes
 	public Queue<Node2D> _availableBoxes = new Queue<Node2D>();
+
+	// List of active travellers for Gantt chart tracking
+	public List<Traveller> _activeTravellers = new List<Traveller>();
 
 	// Grid configuration for box positioning
 	private const int BOXES_PER_ROW = 5;
@@ -104,6 +107,9 @@ public class Main : Node
 			traveller.QueueFree();
 		}
 
+		// Clear active travellers list
+		_activeTravellers.Clear();
+
 		// Reset boxes
 		_InitializeBoxes();
 
@@ -138,6 +144,9 @@ public class Main : Node
 		AddChild(tNode);
 		var traveller = tNode as Traveller;
 
+		// Add to active travellers list
+		_activeTravellers.Add(traveller);
+
 		// get the waypoints
 		var env = GetNode<Node>("Environment");
 		var startC = env.GetNode<ColorRect>("StartPosition");
@@ -164,6 +173,7 @@ public class Main : Node
 			() =>
 			{
 				// callback when journey is complete (no more boxes)
+				_activeTravellers.Remove(traveller);
 				traveller.QueueFree();
 				GD.Print("All boxes delivered!");
 			}
@@ -197,6 +207,20 @@ public class Main : Node
 
 			remainingBoxes[i].Position = mid.RectPosition + gridOffset;
 		}
+	}
+
+	// Method for HUD to get all traveller timeline data
+	public List<Traveller.TravellerInfo> GetAllTravellerTimelines()
+	{
+		var timelines = new List<Traveller.TravellerInfo>();
+		foreach (var traveller in _activeTravellers)
+		{
+			if (traveller != null && IsInstanceValid(traveller))
+			{
+				timelines.Add(traveller.GetTravellerInfo());
+			}
+		}
+		return timelines;
 	}
 
 
